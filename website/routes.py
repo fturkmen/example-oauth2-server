@@ -3,8 +3,8 @@ from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.flask.oauth2 import current_token
 from authlib.specs.rfc6749 import OAuth2Error
-from .models import db, User, OAuth2Client
-from .oauth2 import authorization, require_oauth
+from .models import db, User, OAuth2Client, OAuth2Token
+from .oauth2 import authorization, require_oauth, RefreshTokenGrant
 
 
 bp = Blueprint(__name__, 'home')
@@ -83,6 +83,18 @@ def authorize():
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():
     return authorization.create_token_response()
+
+
+# This endpoint is used to validate a refresh token (has it expired?)
+@bp.route('/oauth/ref_token_validate', methods=['POST'])
+def verify_refresh_token():
+    res = False #RefreshTokenGrant.authenticate_refresh_token(authorization, refresh_token=request.form.get('refresh_token'))
+    item = OAuth2Token.query.filter_by(refresh_token=request.form.get('refresh_token')).first()
+    if item and not item.is_refresh_token_expired():
+        res = True
+    print(res)
+    return jsonify(result=res)
+
 
 
 @bp.route('/oauth/revoke', methods=['POST'])
